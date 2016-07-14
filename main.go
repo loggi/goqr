@@ -5,7 +5,7 @@ import (
 	"flag"
 	"fmt"
 	"github.com/loggi/goqr/pkg"
-	_ "image"
+	"image"
 	_ "image/color"
 	_ "image/png"
 	"io/ioutil"
@@ -26,11 +26,17 @@ var port = flag.Int("port", 8889, "Listening")
 
 var debug = flag.Bool("debug", false, "Debug, may print sensitive data.")
 
+var logo qr.Logo
+
 const shown = 8
 
 func main() {
 
 	flag.Parse()
+
+	img := loadImg("input/loggi_bit.png")
+	msk := loadImg("input/loggi_mask.png")
+	logo = qr.Logo{img, msk}
 
 	if *server {
 
@@ -77,9 +83,19 @@ func main() {
 
 }
 
+func loadImg(path string) (image.Image) {
+	f, _ := os.Open(path)
+	defer f.Close()
+	loaded, _, err := image.Decode(f)
+	if err != nil {
+		log.Println(err)
+	}
+	return loaded
+}
+
 func output(data string, i int, goroutine bool) {
 
-	c, err := qr.Encode(data, qr.H)
+	c, err := qr.Encode(data, qr.H, logo)
 
 	if err != nil {
 		log.Println(err)
@@ -145,7 +161,7 @@ func api(w http.ResponseWriter, r *http.Request) {
 
 			data := strings.Join(v, "")
 
-			c, err := qr.Encode(data, qr.L)
+			c, err := qr.Encode(data, qr.H, logo)
 			if err != nil {
 				log.Println(err)
 			}
